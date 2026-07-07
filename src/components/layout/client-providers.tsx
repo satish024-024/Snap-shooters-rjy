@@ -4,8 +4,23 @@ import React, { useEffect, useState } from "react";
 import Lenis from "lenis";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface ShutterBlade {
+  id: number;
+  angle: number;
+}
+
+const BLADES: ShutterBlade[] = [
+  { id: 1, angle: 0 },
+  { id: 2, angle: 60 },
+  { id: 3, angle: 120 },
+  { id: 4, angle: 180 },
+  { id: 5, angle: 240 },
+  { id: 6, angle: 300 },
+];
+
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     // Initialize Lenis Smooth Scroll
@@ -25,13 +40,18 @@ export default function ClientProviders({ children }: { children: React.ReactNod
 
     rafId = requestAnimationFrame(raf);
 
-    // Setup Preloader timer (1.2 seconds for luxury reveal)
-    const timer = setTimeout(() => {
+    // iris shutter opens after 900ms, preloader exits after 1900ms
+    const openTimer = setTimeout(() => {
+      setIsOpen(true);
+    }, 950);
+
+    const closeTimer = setTimeout(() => {
       setLoading(false);
-    }, 1200);
+    }, 1900);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(openTimer);
+      clearTimeout(closeTimer);
       cancelAnimationFrame(rafId);
       lenis.destroy();
     };
@@ -48,40 +68,97 @@ export default function ClientProviders({ children }: { children: React.ReactNod
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-black"
           >
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center flex flex-col items-center justify-center p-6"
-            >
-              {/* Subtle pulsing gold outer ring around brand initial */}
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="w-16 h-16 rounded-full border border-champagne/20 flex items-center justify-center mb-8 relative"
-              >
-                <motion.span
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-                  className="font-serif text-xl text-champagne font-bold mt-[1px] select-none"
+            {/* Shutter & Logo Center Area */}
+            <div className="relative flex flex-col items-center justify-center min-h-[300px]">
+              
+              {/* Camera Iris Shutter Container */}
+              <div className="relative w-28 h-28 flex items-center justify-center mb-8">
+                
+                <svg
+                  viewBox="0 0 100 100"
+                  className="w-full h-full overflow-hidden relative select-none pointer-events-none"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  S
-                </motion.span>
-                {/* Glow ring */}
-                <motion.div
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.1, 0.3, 0.1] }}
-                  transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-                  className="absolute inset-0 rounded-full border border-champagne/40 pointer-events-none"
-                />
-              </motion.div>
+                  {/* Outer lens ring boundary */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="46"
+                    className="stroke-champagne/30 fill-none"
+                    strokeWidth="1.5"
+                  />
+                  
+                  {/* 6 Overlapping Iris Shutter Blades */}
+                  <g className="origin-center" style={{ transform: "rotate(30deg)" }}>
+                    {BLADES.map((b) => (
+                      <g
+                        key={b.id}
+                        style={{
+                          transform: `rotate(${b.angle}deg)`,
+                          transformOrigin: "50px 50px",
+                        }}
+                      >
+                        <motion.path
+                          d="M 50 50 L 50 4 L 92 28 L 70 60 Z" // Mechanical wedge path meeting at center (50,50)
+                          fill="#C9A86A"
+                          stroke="#000000"
+                          strokeWidth="0.5"
+                          animate={{
+                            // Rotational opening transition slides wedges outward and slightly pivots them
+                            x: isOpen ? 32 : 0,
+                            y: isOpen ? 0 : 0,
+                            rotate: isOpen ? -35 : 0,
+                          }}
+                          transition={{
+                            duration: 0.7,
+                            ease: [0.16, 1, 0.3, 1],
+                          }}
+                          style={{
+                            transformOrigin: "50px 50px",
+                          }}
+                        />
+                      </g>
+                    ))}
+                  </g>
 
-              {/* Brand Name with letter-spacing animation */}
+                  {/* Inner logo monogram revealed when shutter opens */}
+                  {isOpen && (
+                    <motion.text
+                      x="50"
+                      y="56"
+                      textAnchor="middle"
+                      className="font-serif text-xl font-bold fill-champagne"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.15 }}
+                    >
+                      S
+                    </motion.text>
+                  )}
+                </svg>
+
+                {/* High Contrast Watermark shown only when Shutter is closed */}
+                <AnimatePresence>
+                  {!isOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.1 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute z-30 font-serif text-[10px] tracking-[0.25em] text-black font-bold uppercase pointer-events-none select-none text-center"
+                    >
+                      smile please! 📸
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Brand Name revealed under the Shutter */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: isOpen ? 1 : 0, y: isOpen ? 0 : 15 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="text-center"
               >
                 <h1 className="font-serif text-2xl md:text-3xl tracking-[0.3em] uppercase text-white font-light leading-none select-none">
                   SNAP SHOOTER
@@ -89,32 +166,23 @@ export default function ClientProviders({ children }: { children: React.ReactNod
                 <h1 className="font-serif text-[11px] md:text-xs tracking-[0.55em] text-champagne uppercase mt-2.5 font-light leading-none select-none">
                   STUDIOS
                 </h1>
+                
+                <div className="w-16 h-[0.5px] bg-champagne/30 mx-auto my-6" />
+                
+                <p className="font-sans text-[9px] tracking-[0.25em] text-white/50 uppercase leading-relaxed max-w-[280px] select-none mx-auto">
+                  India’s Premium Wedding Experience Company
+                </p>
               </motion.div>
-              
-              <motion.div
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.8, delay: 0.4, ease: "easeInOut" }}
-                className="w-16 h-[0.5px] bg-champagne/30 my-6"
-              />
-              
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
-                className="font-sans text-[9px] tracking-[0.25em] text-white uppercase leading-relaxed max-w-[280px] select-none"
-              >
-                India’s Premium Wedding Experience Company
-              </motion.p>
-            </motion.div>
+
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+        animate={{ opacity: loading ? 0 : 1 }}
+        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         className="w-full flex-grow flex flex-col"
       >
         {children}
