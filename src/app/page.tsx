@@ -1,6 +1,6 @@
 import React from "react";
 import Navigation from "@/components/layout/navigation";
-import Hero from "@/components/sections/hero";
+import ScrollExpandMedia from "@/components/sections/hero";
 import SignatureMoments from "@/components/sections/signature-moments";
 import LoveStories from "@/components/sections/love-stories";
 import FilmsSection from "@/components/sections/films-section";
@@ -24,10 +24,12 @@ export default function Home() {
       {/* Main Exhibition Layout */}
       <main className="flex-grow">
         {/* 1. Evolving full-screen media Hero with Scroll Expansion */}
-        <Hero
+        <ScrollExpandMedia
           mediaType="video"
           mediaSrc="/hero_wedding.mp4"
           bgImageSrc="/indian_marriage_bg.png"
+          title="Snap Shooter Studios"
+          date="ESTD 2009"
           scrollToExpand="SCROLL TO EXPLORE"
         >
           {/* 2. Signature Moments (asymmetrical curated 6-8 iconic photos) */}
@@ -76,7 +78,7 @@ export default function Home() {
 
           {/* 13. Call to Action banner */}
           <CtaBanner />
-        </Hero>
+        </ScrollExpandMedia>
       </main>
 
       {/* Luxury Footer */}

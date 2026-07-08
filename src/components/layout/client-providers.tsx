@@ -3,6 +3,13 @@
 import React, { useEffect, useState } from "react";
 import Lenis from "lenis";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
+
+declare global {
+  interface Window {
+    lenisInstance?: Lenis;
+  }
+}
 
 interface ShutterBlade {
   id: number;
@@ -23,31 +30,16 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   const [isOpen, setIsOpen] = useState(true); // Starts OPEN
   const [flash, setFlash] = useState(false); // Shutter flash effect
 
+  const pathname = usePathname();
+
+  // Initialize Lenis Smooth Scroll + Shutter Preloader Timers
   useEffect(() => {
-    // Initialize Lenis Smooth Scroll
-    const lenis = new Lenis({
-      duration: 1.5,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: "vertical",
-      gestureOrientation: "vertical",
-      smoothWheel: true,
-    });
-
-    let rafId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      rafId = requestAnimationFrame(raf);
-    }
-
-    rafId = requestAnimationFrame(raf);
-
-    // 1. Shutter starts OPEN
-    // 2. Snaps CLOSED at 400ms
+    // Shutter starts OPEN, snaps CLOSED at 450ms
     const snapCloseTimer = setTimeout(() => {
       setIsOpen(false);
     }, 450);
 
-    // 3. Trigger camera flash at 550ms (for 150ms duration)
+    // Camera flash at 550ms
     const flashOnTimer = setTimeout(() => {
       setFlash(true);
     }, 550);
@@ -55,15 +47,39 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       setFlash(false);
     }, 700);
 
-    // 4. Shutter opens back up at 1250ms
+    // Shutter opens back up at 1300ms
     const snapOpenTimer = setTimeout(() => {
       setIsOpen(true);
     }, 1300);
 
-    // 5. Preloader screen exits at 2400ms
+    // Preloader screen exits at 2400ms
     const exitTimer = setTimeout(() => {
       setLoading(false);
     }, 2400);
+
+    // Only initialize Lenis if we are NOT on the homepage
+    let lenis: Lenis | undefined;
+    let rafId: number | undefined;
+
+    if (pathname !== "/") {
+      lenis = new Lenis({
+        duration: 1.5,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: "vertical",
+        gestureOrientation: "vertical",
+        smoothWheel: true,
+      });
+
+      window.lenisInstance = lenis;
+
+      const raf = (time: number) => {
+        lenis?.raf(time);
+        rafId = requestAnimationFrame(raf);
+      };
+      rafId = requestAnimationFrame(raf);
+    } else {
+      window.lenisInstance = undefined;
+    }
 
     return () => {
       clearTimeout(snapCloseTimer);
@@ -71,10 +87,13 @@ export default function ClientProviders({ children }: { children: React.ReactNod
       clearTimeout(flashOffTimer);
       clearTimeout(snapOpenTimer);
       clearTimeout(exitTimer);
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
+      if (rafId) cancelAnimationFrame(rafId);
+      if (lenis) {
+        lenis.destroy();
+      }
+      window.lenisInstance = undefined;
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <>
